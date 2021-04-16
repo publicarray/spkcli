@@ -81,8 +81,15 @@ clean_all() {
             rm -v "$(echo "$FILE" | awk '{print $2}')"
         fi
     done <   <(sha256sum -z distrib/* 2>/dev/null)
-    echo "===> Done!"
 
+    echo "===> Cleaning distrib/nuget"
+    if [ -f /spksrc/native/dotnet-sdk-5.0/work-native/dotnet ]; then
+        NUGET_PACKAGES=/spksrc/distrib/nuget/packages /spksrc/native/dotnet-sdk-5.0/work-native/dotnet nuget locals all --clear
+    else
+        rm -rdf "$SCRIPT_DIR"/distrib/nuget/packages
+    fi
+
+    echo "===> Done!"
 }
 
 case $1 in
