@@ -48,12 +48,41 @@ auto_digests() {
 }
 
 clean_all() {
-    for SPK in "$SCRIPT_DIR"/spk/*; do
-        make -C "$SPK" clean
+    echo "===> Cleaning spk"
+    for PKG in "$SCRIPT_DIR"/spk/*; do
+        make -C "$PKG" clean
     done
-        for SPK in "$SCRIPT_DIR"/cross/*; do
-        make -C "$SPK" clean
+    echo "===> Cleaning cross"
+    for PKG in "$SCRIPT_DIR"/cross/*; do
+        make -C "$PKG" clean
     done
+    echo "===> Cleaning diyspk"
+    for PKG in "$SCRIPT_DIR"/diyspk/*; do
+        make -C "$PKG" clean
+    done
+
+    echo "===> Cleaning distrib"
+    DIGESTS_FILES=$(find cross -name 'digests' -type f)
+    DIGESTS_FILES+=" $(find spk -name 'digests' -type f)"
+    for DIGESTS_FILE in $DIGESTS_FILES; do
+        DIGESTS+=("$(grep -i sha256 "$DIGESTS_FILE" | awk '{print $3}')")
+    done
+    echo "==> Calculating hashes..."
+    while IFS= read -r -d $'\0' FILE
+    do
+        MATCH=0
+        CURRENT_HASH=$(echo "$FILE" | awk '{print $1}')
+        for DIGEST in ${DIGESTS[*]}; do
+            if [ "$CURRENT_HASH" = "$DIGEST" ]; then
+                MATCH=1
+            fi
+        done
+        if [ "$MATCH" = "0" ]; then
+            rm -v "$(echo "$FILE" | awk '{print $2}')"
+        fi
+    done <   <(sha256sum -z distrib/* 2>/dev/null)
+    echo "===> Done!"
+
 }
 
 case $1 in
