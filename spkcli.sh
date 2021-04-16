@@ -8,7 +8,8 @@ docker_run() {
     docker run -it --rm --name spksrc -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
 }
 
-docker_pull() {
+docker_git_pull() {
+    git pull upstream master
     docker pull synocommunity/spksrc
 }
 
@@ -60,7 +61,7 @@ case $1 in
         docker_run
         ;;
     pull)
-        docker_pull
+        docker_git_pull
         ;;
     publish)
         shift
