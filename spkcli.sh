@@ -46,8 +46,11 @@ auto_digests() {
     # cd "$CUR_PWD"
 }
 
-clean_all-spk() {
+clean_all() {
     for SPK in "$SCRIPT_DIR"/spk/*; do
+        make -C "$SPK" clean
+    done
+        for SPK in "$SCRIPT_DIR"/cross/*; do
         make -C "$SPK" clean
     done
 }
@@ -71,8 +74,8 @@ case $1 in
         shift
         build_x64 "$1"
         ;;
-    clean-all-spk)
-        clean_all-spk
+    clean-all)
+        clean_all
         ;;
     digest|digests|hash)
         shift
