@@ -28,8 +28,11 @@ auto_publish_SRM() {
 
 build_x64() {
     make -C "$SCRIPT_DIR"/spk/"$1" spkclean
-    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
-    # make -C spk/"$1" -j"$(nproc)" arch-x64-6.1
+    if [ -n "$2" ]; then
+        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-"$2"
+    else
+        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
+    fi
 }
 
 auto_digests() {
@@ -159,7 +162,7 @@ case $1 in
         ;;
     build)
         shift
-        build_x64 "$1"
+        build_x64 "$1" "$2"
         ;;
     clean-all)
         clean_all
