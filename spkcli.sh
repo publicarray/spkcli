@@ -19,9 +19,6 @@ auto_publish() {
     make -C spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
     make -C spk/"$1" publish-all-supported
     make -C spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
-
-    # make -C spk/"$1" arch-armv7-1.2
-    # make -C spk/"$1" publish arch-armv7-1.2
 }
 
 auto_publish_SRM() {
@@ -39,12 +36,63 @@ auto_digests() {
     make -C cross/"$1" clean
     make -C cross/"$1" digests
     make -C cross/"$1" clean
-    # CUR_PWD="$PWD"
-    # SPK="$(basename "$PWD")"
-    # cd ../cross/"$SPK" || exit 1
-    # make clean
-    # make digests
-    # cd "$CUR_PWD"
+}
+
+# https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
+get_latest_release_by_upload() {
+    # latest by upload date
+    curl -L --silent "https://api.github.com/repos/$1/releases/latest" | # Get latest release from GitHub api
+        grep '"tag_name":' |                                            # Get tag line
+        sed -E 's/.*"([^"]+)".*/\1/'                                    # Pluck JSON value
+}
+
+get_latest_release() {
+    # no draft versions
+    curl -L --silent "https://api.github.com/repos/$1/releases" |
+        jq 'map(if .draft == true then "" else .tag_name end)[0]'
+}
+
+get_latest_tag() {
+    # latest by upload date (not all repos make releases but create tags)
+    curl -L --silent "https://api.github.com/repos/$1/tags" | jq 'map(.name)[0]'
+}
+
+
+github_check_update() {
+    PKG_NAME=$1
+    PKG_VERS="$(grep ^PKG_VERS cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
+    URL="$(grep ^PKG_DIST_SITE cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
+    REPO=$(sed -rn 's/^https:\/\/github.com\/([^\/]+)\/([^\/]+).+$/\1\/\2/p' <<< "$URL")
+    REPO=${REPO//\$(PKG_NAME)/$PKG_NAME}
+    if [ -z "$REPO" ]; then
+        echo "No github repository detected"
+        exit 1
+    fi
+    echo "Found Repository: https://github.com/$REPO"
+    LATEST=$(get_latest_release "$REPO")
+    # cleanup version string
+    LATEST=${LATEST//[vVrR\"]/}
+    LATEST=${LATEST//\_/\.}
+    # shellcheck disable=SC2001
+    LATEST=$(sed 's/^\.//' <<< "$LATEST")
+
+    echo "Package Version: $PKG_VERS - Latest Version: $LATEST"
+    # todo: use best method to determine new version (git release/tag)
+    # compare version if
+    if printf '%s\n' "$LATEST" "$PKG_VERS" | sort -VC ; then
+        echo "===> You have the latest version!"
+        exit 0
+    fi
+    echo "===> Warning updating files to latest version"
+    sed -i "s/^PKG_VERS.*/PKG_VERS = $LATEST/" cross/"$1"/Makefile
+    if [ -f spk/"$1"/Makefile ]; then
+        sed -i "s/^PKG_VERS.*/PKG_VERS = $LATEST/" spk/"$1"/Makefile
+        SPK_REV="$(grep ^SPK_REV spk/$1/Makefile | awk -F = '{print $2}' | xargs)"
+        SPK_REV=$((SPK_REV + 1))
+        sed -i "s/^SPK_REV.*/SPK_REV = $SPK_REV/" spk/"$1"/Makefile
+        sed -i "s/^CHANGELOG.*/CHANGELOG = \"Update $PKG_NAME to $LATEST\"/" spk/"$1"/Makefile
+    fi
+    auto_digests "$1"
 }
 
 clean_all() {
@@ -117,6 +165,10 @@ case $1 in
     digest|digests|hash)
         shift
         auto_digests "$1"
+        ;;
+    update-check)
+        shift
+        github_check_update "$1"
         ;;
     help)
         printf "$0 [COMMAND]\n\tdocker\t\trun docker container\n\tbuild [SPK]\tbuild packages for devlopment (x64)\n\tpublish [SPK]\tbuild and publish for all architectures\n\tdigest [SPK]\tupdate digest\n\n"
