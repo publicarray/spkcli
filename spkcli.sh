@@ -14,28 +14,28 @@ docker_git_pull() {
 }
 
 auto_publish() {
-    make -C spk/"$1" clean
-    make -C spk/"$1" -j"$(nproc)" all-supported
-    make -C spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
-    make -C spk/"$1" publish-all-supported
-    make -C spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
+    make -C "$SCRIPT_DIR"/spk/"$1" clean
+    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
+    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
+    make -C "$SCRIPT_DIR"/spk/"$1" publish-all-supported
+    make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
 }
 
 auto_publish_SRM() {
-    make -C spk/"$1" -j"$(nproc)" arch-armv7-1.2
-    make -C spk/"$1" publish arch-armv7-1.2
+    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-armv7-1.2
+    make -C "$SCRIPT_DIR"/spk/"$1" publish arch-armv7-1.2
 }
 
 build_x64() {
-    make -C spk/"$1" spkclean
-    make -C spk/"$1" -j"$(nproc)" arch-x64-7.0
+    make -C "$SCRIPT_DIR"/spk/"$1" spkclean
+    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
     # make -C spk/"$1" -j"$(nproc)" arch-x64-6.1
 }
 
 auto_digests() {
-    make -C cross/"$1" clean
-    make -C cross/"$1" digests
-    make -C cross/"$1" clean
+    make -C "$SCRIPT_DIR"/cross/"$1" clean
+    make -C "$SCRIPT_DIR"/cross/"$1" digests
+    make -C "$SCRIPT_DIR"/cross/"$1" clean
 }
 
 # https://gist.github.com/lukechilds/a83e1d7127b78fef38c2914c4ececc3c
