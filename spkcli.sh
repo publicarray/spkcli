@@ -58,7 +58,7 @@ get_latest_tag() {
 }
 
 
-github_check_update() {
+github_update_spk() {
     PKG_NAME=$1
     PKG_VERS="$(grep ^PKG_VERS cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
     URL="$(grep ^PKG_DIST_SITE cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
@@ -166,9 +166,9 @@ case $1 in
         shift
         auto_digests "$1"
         ;;
-    update-check)
+    update)
         shift
-        github_check_update "$1"
+        github_update_spk "$1"
         ;;
     help)
         printf "$0 [COMMAND]\n\tdocker\t\trun docker container\n\tbuild [SPK]\tbuild packages for devlopment (x64)\n\tpublish [SPK]\tbuild and publish for all architectures\n\tdigest [SPK]\tupdate digest\n\n"
