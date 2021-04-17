@@ -69,15 +69,17 @@ github_update_spk() {
         exit 1
     fi
     echo "Found Repository: https://github.com/$REPO"
+    # todo: use best method to determine new version (git release/tag)
     LATEST=$(get_latest_release "$REPO")
     # cleanup version string
     LATEST=${LATEST//[vVrR\"]/}
     LATEST=${LATEST//\_/\.}
     # shellcheck disable=SC2001
     LATEST=$(sed 's/^\.//' <<< "$LATEST")
-
     echo "Package Version: $PKG_VERS - Latest Version: $LATEST"
-    # todo: use best method to determine new version (git release/tag)
+    # shellcheck disable=SC2001
+    LATEST=$(sed 's/-.*//' <<< "$LATEST")
+
     # compare version if
     if printf '%s\n' "$LATEST" "$PKG_VERS" | sort -VC ; then
         echo "===> You have the latest version!"
