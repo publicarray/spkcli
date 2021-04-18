@@ -23,7 +23,7 @@ auto_publish() {
 
 auto_publish_SRM() {
     make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-armv7-1.2
-    make -C "$SCRIPT_DIR"/spk/"$1" publish arch-armv7-1.2
+    make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-armv7-1.2
 }
 
 build_x64() {
