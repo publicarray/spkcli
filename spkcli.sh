@@ -11,10 +11,9 @@ print_help() {
     printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
     printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
     printf "    build [SPK]\t\tbuild packages for development (x64)\n"
-    printf "    cleanall\t\tclean all builds and cached files in /distrib\n"
+    printf "    clean-all\t\tclean all builds and cached files in /distrib\n"
     printf "    digest [SPK]\tupdate digests\n"
     printf "    update [SPK]\tcheck for git releases for an update\n"
-    printf "\n"
 }
 
 docker_run() {
@@ -169,7 +168,7 @@ case $1 in
         shift
         auto_publish "$1"
         ;;
-    publish-srm)
+    publish-srm|publishsrm)
         shift
         auto_publish_SRM "$1"
         ;;
@@ -177,7 +176,7 @@ case $1 in
         shift
         build_x64 "$1" "$2"
         ;;
-    clean-all)
+    clean-all|cleanall)
         clean_all
         ;;
     digest|digests|hash)
