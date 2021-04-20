@@ -4,6 +4,19 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+print_help() {
+    printf "%s [COMMAND]\n" "$0"
+    printf "    docker\t\trun docker container\n"
+    printf "    pull\t\tgit pull & docker image pull\n"
+    printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
+    printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
+    printf "    build [SPK]\t\tbuild packages for development (x64)\n"
+    printf "    cleanall\t\tclean all builds and cached files in /distrib\n"
+    printf "    digest [SPK]\tupdate digests\n"
+    printf "    update [SPK]\tcheck for git releases for an update\n"
+    printf "\n"
+}
+
 docker_run() {
     docker run -it --rm --name spksrc -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
 }
@@ -175,7 +188,7 @@ case $1 in
         shift
         github_update_spk "$1"
         ;;
-    help)
-        printf "$0 [COMMAND]\n\tdocker\t\trun docker container\n\tbuild [SPK]\tbuild packages for devlopment (x64)\n\tpublish [SPK]\tbuild and publish for all architectures\n\tdigest [SPK]\tupdate digest\n\n"
+    *)
+        print_help
         ;;
 esac
