@@ -103,7 +103,7 @@ github_update_spk() {
     echo "===> Warning updating files to latest version"
     sed -i "s/^PKG_VERS.*/PKG_VERS = $LATEST/" cross/"$1"/Makefile
     if [ -f spk/"$1"/Makefile ]; then
-        sed -i "s/^PKG_VERS.*/PKG_VERS = $LATEST/" spk/"$1"/Makefile
+        sed -i "s/^SPK_VERS.*/SPK_VERS = $LATEST/" spk/"$1"/Makefile
         SPK_REV="$(grep ^SPK_REV spk/$1/Makefile | awk -F = '{print $2}' | xargs)"
         SPK_REV=$((SPK_REV + 1))
         sed -i "s/^SPK_REV.*/SPK_REV = $SPK_REV/" spk/"$1"/Makefile
