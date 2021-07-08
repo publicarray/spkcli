@@ -172,6 +172,9 @@ case $1 in
         shift
         auto_publish_SRM "$1"
         ;;
+    pr)
+        gh pr create
+        ;;
     build)
         shift
         build_x64 "$1" "$2"
