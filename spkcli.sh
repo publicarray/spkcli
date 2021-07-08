@@ -38,6 +38,42 @@ auto_publish_SRM() {
     make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-armv7-1.2
 }
 
+# This will publish a SPK of a given name from the master branch to SynoCommunity
+publish_action() {
+    # we only want to publish something that is on master
+    git pull upstream master
+    git checkout upstream/master
+    git checkout master
+
+    SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+    SPK_VERS="$(grep '^SPK_VERS' spk/$SPK_NAME/Makefile | awk -F = '{print $2}' | xargs)"
+    BRANCH="$SPK_NAME-gh-publish"
+    TAG="$SPK_NAME-$SPK_VERS"
+
+    echo "BRANCH: $BRANCH"
+    echo "TAG: $TAG"
+
+# Remove this block when 4491 is merged
+    echo "Adding GitHub Publish Actions Patch..."
+    sleep 2s
+
+    git checkout -b "$BRANCH"
+    wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4491.patch
+    git apply 4491.patch
+    git add mk/spksrc.spk.mk .github/*
+    git commit -m "Add gh publish patch"
+# end
+
+    echo "Pushing Tag...in 4 seconds!"
+    sleep 4s
+
+    git tag -a -s -m "$TAG" "$TAG"
+    git push -u origin "$BRANCH"
+    git push --tags origin "$TAG"
+    git checkout master
+    git branch -D "$BRANCH"
+}
+
 build_x64() {
     make -C "$SCRIPT_DIR"/spk/"$1" spkclean
     if [ -n "$2" ]; then
@@ -75,8 +111,8 @@ get_latest_tag() {
 
 github_update_spk() {
     PKG_NAME=$1
-    PKG_VERS="$(grep ^PKG_VERS cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
-    URL="$(grep ^PKG_DIST_SITE cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
+    PKG_VERS="$(grep '^PKG_VERS' cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
+    URL="$(grep '^PKG_DIST_SITE' cross/$1/Makefile | awk -F = '{print $2}' | xargs)"
     REPO=$(sed -rn 's/^https:\/\/github.com\/([^\/]+)\/([^\/]+).+$/\1\/\2/p' <<< "$URL")
     REPO=${REPO//\$(PKG_NAME)/$PKG_NAME}
     if [ -z "$REPO" ]; then
@@ -104,7 +140,7 @@ github_update_spk() {
     sed -i "s/^PKG_VERS.*/PKG_VERS = $LATEST/" cross/"$1"/Makefile
     if [ -f spk/"$1"/Makefile ]; then
         sed -i "s/^SPK_VERS.*/SPK_VERS = $LATEST/" spk/"$1"/Makefile
-        SPK_REV="$(grep ^SPK_REV spk/$1/Makefile | awk -F = '{print $2}' | xargs)"
+        SPK_REV="$(grep '^SPK_REV' spk/$1/Makefile | awk -F = '{print $2}' | xargs)"
         SPK_REV=$((SPK_REV + 1))
         sed -i "s/^SPK_REV.*/SPK_REV = $SPK_REV/" spk/"$1"/Makefile
         sed -i "s/^CHANGELOG.*/CHANGELOG = \"Update $PKG_NAME to $LATEST\"/" spk/"$1"/Makefile
@@ -171,6 +207,10 @@ case $1 in
     publish-srm|publishsrm)
         shift
         auto_publish_SRM "$1"
+        ;;
+    publish-action|publishaction|gh-publish|ghpublish)
+        shift
+        publish_action "$1"
         ;;
     pr)
         gh pr create
