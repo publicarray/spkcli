@@ -42,7 +42,7 @@ auto_publish_SRM() {
 publish_action() {
     # we only want to publish something that is on master
     git pull upstream master
-    git checkout upstream/master
+    # git checkout upstream/master
     git checkout master
 
     SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
@@ -53,15 +53,16 @@ publish_action() {
     echo "BRANCH: $BRANCH"
     echo "TAG: $TAG"
 
-# Remove this block when 4491 is merged
+# Remove this block when 4491 an 4717 is merged
     echo "Adding GitHub Publish Actions Patch..."
     sleep 2s
 
     git checkout -b "$BRANCH"
     wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4491.patch
-    git apply 4491.patch
-    git add mk/spksrc.spk.mk .github/*
-    git commit -m "Add gh publish patch"
+    wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4717.patch
+    git apply 4491.patch 4717.patch
+    git add mk/spksrc.spk.mk Makefile .github/*
+    git commit -m "Add gh publish patches"
 # end
 
     echo "Pushing Tag...in 4 seconds!"
