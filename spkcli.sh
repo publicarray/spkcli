@@ -26,10 +26,10 @@ docker_git_pull() {
 }
 
 auto_publish() {
-    make -C "$SCRIPT_DIR"/spk/"$1" clean
-    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
-    make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
-    make -C "$SCRIPT_DIR"/spk/"$1" publish-all-supported
+    # make -C "$SCRIPT_DIR"/spk/"$1" clean
+    # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
+    # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
+    # make -C "$SCRIPT_DIR"/spk/"$1" publish-all-supported
     make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
 }
 
@@ -40,10 +40,16 @@ auto_publish_SRM() {
 
 # This will publish a SPK of a given name from the master branch to SynoCommunity
 publish_action() {
+    if [ -z "$1" ]; then
+        echo "Error: Missing package name"
+        print_help
+        exit 1
+    fi
+    git checkout master
     # we only want to publish something that is on master
     git pull upstream master
     # git checkout upstream/master
-    git checkout master
+    # git checkout master
 
     SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
     SPK_VERS="$(grep '^SPK_VERS' spk/$SPK_NAME/Makefile | awk -F = '{print $2}' | xargs)"
@@ -73,6 +79,9 @@ publish_action() {
     git push --tags origin "$TAG"
     git checkout master
     git branch -D "$BRANCH"
+    git tag -d "$TAG"
+
+    # gh run -R publicarray/spksrc watch
 }
 
 build_x64() {
