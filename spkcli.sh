@@ -21,6 +21,7 @@ docker_run() {
 }
 
 docker_git_pull() {
+    # git branch --set-upstream-to=origin/master
     git pull upstream master
     docker pull synocommunity/spksrc
 }
@@ -84,9 +85,11 @@ publish_action() {
     # gh run -R publicarray/spksrc watch
 }
 
-build_x64() {
+build() {
     make -C "$SCRIPT_DIR"/spk/"$1" spkclean
-    if [ -n "$2" ]; then
+    if [ "$2" == "all" ]; then
+        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
+    elif [ -n "$2" ]; then
         make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-"$2"
     else
         make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
@@ -171,6 +174,8 @@ clean_all() {
     for PKG in "$SCRIPT_DIR"/diyspk/*; do
         make -C "$PKG" clean
     done
+    echo "===> Cleaning native"
+    make native-clean
 
     echo "===> Cleaning distrib"
     DIGESTS_FILES=$(find cross -name 'digests' -type f)
@@ -227,7 +232,11 @@ case $1 in
         ;;
     build)
         shift
-        build_x64 "$1" "$2"
+        build "$1" "$2"
+        ;;
+    build-all|buildall)
+        shift
+        build "$1" all
         ;;
     clean-all|cleanall)
         clean_all
