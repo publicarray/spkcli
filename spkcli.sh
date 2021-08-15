@@ -17,7 +17,7 @@ print_help() {
 }
 
 docker_run() {
-    docker run -it --rm --name spksrc --cpus="$(($(nproc)/2))" -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
+    docker run -it --rm --name spksrc -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
 }
 
 docker_git_pull() {
