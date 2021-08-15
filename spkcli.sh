@@ -17,7 +17,7 @@ print_help() {
 }
 
 docker_run() {
-    docker run -it --rm --name spksrc -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
+    docker run -it --rm --name spksrc --cpus="$(($(nproc)/2))" -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
 }
 
 docker_git_pull() {
@@ -60,14 +60,13 @@ publish_action() {
     echo "BRANCH: $BRANCH"
     echo "TAG: $TAG"
 
-# Remove this block when 4491 an 4717 is merged
+# Remove this block when 4491 is merged
     echo "Adding GitHub Publish Actions Patch..."
     sleep 2s
 
     git checkout -b "$BRANCH"
     wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4491.patch
-    wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4717.patch
-    git apply 4491.patch 4717.patch
+    git apply 4491.patch
     git add mk/spksrc.spk.mk Makefile .github/*
     git commit -m "Add gh publish patches"
 # end
