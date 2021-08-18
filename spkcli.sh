@@ -17,13 +17,15 @@ print_help() {
 }
 
 docker_run() {
-    docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
+    # docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
+    docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc ghcr.io/synocommunity/spksrc
 }
 
 docker_git_pull() {
     # git branch --set-upstream-to=origin/master
     git pull upstream master
     docker pull synocommunity/spksrc
+    docker pull ghcr.io/synocommunity/spksrc
 }
 
 auto_publish() {
