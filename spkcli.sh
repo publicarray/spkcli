@@ -8,9 +8,10 @@ DEPENDENCIES=("curl" "git" "sed" "rm")
 
 print_help() {
     printf "%s [COMMAND]\n" "$0"
-    printf "    run\t\trun container for development\n"
+    printf "    run\t\t\trun container for development\n"
     printf "    pull\t\tgit pull & docker image pull\n"
     printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
+    printf "    publish-ci [SPK] true\tbuild and publish for all supported DSM versions/architectures using GitHub Actions\n"
     printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
     printf "    build [SPK]\t\tbuild packages for development (x64)\n"
     printf "    clean [SPK]\t\tclean package\n"
@@ -95,16 +96,20 @@ publish_action() {
         exit 1
     fi
 
+    if [ -z "$1" ] || [ "$2" != "true" ]; then
+        echo "==> Warning not publishing!"
+        echo "Last argument must be 'true'"
+    fi
     GITHUB_USERNAME=$(get_github_username)
+    SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
 
     # we only want to publish something that is on master
     git checkout master
     git pull upstream master
 
-    SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
     echo "Running Publish Workflow...in 4 seconds!"
     sleep 4s
-    gh workflow -R "${GITHUB_USERNAME}/spksrc" run build.yml -f "package=$SPK_NAME" -f publish=true
+    gh workflow -R "${GITHUB_USERNAME}/spksrc" run build.yml -f "package=$SPK_NAME" -f "publish=$2"
     gh run -R "${GITHUB_USERNAME}/spksrc" watch && notify-send -i "github" -a "GitHub" \
         "🛠 Build is done! 🎉" "To view the build visit https://synocommunity.com/admin/build"
 }
@@ -295,9 +300,9 @@ case $1 in
         shift
         auto_publish_SRM "$1"
         ;;
-    publish-action|publishaction|gh-publish|ghpublish)
+    publish-action|publishaction|gh-publish|ghpublish|publish-ci|publishci)
         shift
-        publish_action "$1"
+        publish_action "$1" "$2"
         ;;
     pr)
         gh pr create
