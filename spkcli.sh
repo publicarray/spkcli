@@ -4,6 +4,7 @@ set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
+DEPENDENCIES=("curl" "git" "sed" "rm")
 
 print_help() {
     printf "%s [COMMAND]\n" "$0"
@@ -12,12 +13,14 @@ print_help() {
     printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
     printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
     printf "    build [SPK]\t\tbuild packages for development (x64)\n"
+    printf "    clean [SPK]\t\tclean package\n"
     printf "    clean-all\t\tclean all builds and cached files in /distrib\n"
     printf "    digest [SPK]\tupdate digests\n"
     printf "    update [SPK]\tcheck for git releases for an update\n"
 }
 
 docker_run() {
+    check_any_dependency "docker" "podman"
     if type -p podman > /dev/null 2>&1; then
         ##setup rootless: udo touch /etc/subuid /etc/subgid && sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
         podman run -it --rm --name spksrc --userns keep-id -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE"
@@ -27,6 +30,8 @@ docker_run() {
 }
 
 docker_git_pull() {
+    check_any_dependency "docker" "podman"
+
     # git branch --set-upstream-to=origin/master
     git pull upstream master
 
@@ -50,8 +55,9 @@ auto_publish_SRM() {
     make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-armv7-1.2
 }
 
-# This will publish a SPK of a given name from the master branch to SynoCommunity
-publish_action() {
+# create a github release
+release_action() {
+    # check_dependency "gh"
     if [ -z "$1" ]; then
         echo "Error: Missing package name"
         print_help
@@ -65,34 +71,42 @@ publish_action() {
 
     SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
     SPK_VERS="$(grep '^SPK_VERS' spk/$SPK_NAME/Makefile | awk -F = '{print $2}' | xargs)"
-    BRANCH="$SPK_NAME-gh-publish"
     TAG="$SPK_NAME-$SPK_VERS"
 
-    echo "BRANCH: $BRANCH"
     echo "TAG: $TAG"
-
-# Remove this block when 4491 is merged
-    echo "Adding GitHub Publish Actions Patch..."
-    sleep 2s
-
-    git checkout -b "$BRANCH"
-    wget -nc https://patch-diff.githubusercontent.com/raw/SynoCommunity/spksrc/pull/4491.patch
-    git apply 4491.patch
-    git add mk/spksrc.spk.mk Makefile .github/*
-    git commit -m "Add gh publish patches"
-# end
-
     echo "Pushing Tag...in 4 seconds!"
     sleep 4s
 
     git tag -a -s -m "$TAG" "$TAG"
-    git push -u origin "$BRANCH"
     git push --tags origin "$TAG"
-    git checkout master
-    git branch -D "$BRANCH"
     git tag -d "$TAG"
 
-    # gh run -R publicarray/spksrc watch
+    GITHUB_USERNAME=$(get_github_username)
+
+    gh run -R "${GITHUB_USERNAME}/spksrc" watch && notify-send -i "github" -a "GitHub" \
+        "GiHub Release is done! 🎉" "https://github.com/${GITHUB_USERNAME}/spksrc/releases"
+}
+
+# This will publish a SPK of a given name from the master branch to SynoCommunity
+publish_action() {
+    if [ -z "$1" ]; then
+        echo "Error: Missing package name"
+        print_help
+        exit 1
+    fi
+
+    GITHUB_USERNAME=$(get_github_username)
+
+    # we only want to publish something that is on master
+    git checkout master
+    git pull upstream master
+
+    SPK_NAME="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
+    echo "Running Publish Workflow...in 4 seconds!"
+    sleep 4s
+    gh workflow -R "${GITHUB_USERNAME}/spksrc" run build.yml -f "package=$SPK_NAME" -f publish=true
+    gh run -R "${GITHUB_USERNAME}/spksrc" watch && notify-send -i "github" -a "GitHub" \
+        "🛠 Build is done! 🎉" "To view the build visit https://synocommunity.com/admin/build"
 }
 
 build() {
@@ -104,6 +118,10 @@ build() {
     else
         make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
     fi
+}
+
+clean() {
+    make -C "$SCRIPT_DIR"/spk/"$1" clean
 }
 
 auto_digests() {
@@ -218,6 +236,50 @@ clean_all() {
     echo "===> Done!"
 }
 
+get_github_username() {
+    check_dependency "gh"
+    if [ ! -f "$HOME/.config/gh/hosts.yml" ]; then
+        echo "Error: Please login to GitHub with 'gh auth login'" 1>&2
+        echo "file '~/config/gh/hosts.yml' not found!" 1>&2
+        exit 1
+    fi
+    GITHUB_USERNAME=$(sed -n 's/\s*user:\s*\(.*\)/\1/p' "$HOME"/.config/gh/hosts.yml)
+    if [ -z "$GITHUB_USERNAME" ]; then
+        echo "Error: Please login to GitHub with 'gh auth login'" 1>&2
+        echo "Username not found!" 1>&2
+        exit 1
+    fi
+    echo "$GITHUB_USERNAME"
+}
+
+check_dependency() {
+    missing="false"
+    for cmd in "$@"; do
+        if ! type -p "$cmd" > /dev/null 2>&1; then
+            echo "Missing command '$cmd' please install it to continue." 1>&2
+            missing="true"
+        fi
+    done
+
+    [ "$missing" == "false" ] || exit 1
+}
+check_any_dependency() {
+    missing="true"
+    for cmd in "$@"; do
+        if type -p "$cmd" > /dev/null 2>&1; then
+            missing="false"
+            echo "$cmd"
+        fi
+    done
+
+    if [ "$missing" == "true" ]; then
+        echo "Missing command of either '$1' or '$2' please install one of them to continue." 1>&2
+        exit 1
+    fi
+}
+#### Script Start ####
+check_dependency ${DEPENDENCIES[*]}
+
 case $1 in
     docker|podman|run)
         docker_run
@@ -243,6 +305,10 @@ case $1 in
     build)
         shift
         build "$1" "$2"
+        ;;
+    clean)
+        shift
+        clean "$1"
         ;;
     build-all|buildall)
         shift
