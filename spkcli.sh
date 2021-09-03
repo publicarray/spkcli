@@ -3,10 +3,11 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
 
 print_help() {
     printf "%s [COMMAND]\n" "$0"
-    printf "    docker\t\trun docker container\n"
+    printf "    run\t\trun container for development\n"
     printf "    pull\t\tgit pull & docker image pull\n"
     printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
     printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
@@ -17,15 +18,23 @@ print_help() {
 }
 
 docker_run() {
-    # docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc synocommunity/spksrc
-    docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc ghcr.io/synocommunity/spksrc
+    if type -p podman > /dev/null 2>&1; then
+        ##setup rootless: udo touch /etc/subuid /etc/subgid && sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
+        podman run -it --rm --name spksrc --userns keep-id -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE"
+    else
+        docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE"
+    fi
 }
 
 docker_git_pull() {
     # git branch --set-upstream-to=origin/master
     git pull upstream master
-    docker pull synocommunity/spksrc
-    docker pull ghcr.io/synocommunity/spksrc
+
+    if type -p podman > /dev/null 2>&1; then
+        podman pull "$CONTAINER_IMAGE"
+    else
+        docker pull "$CONTAINER_IMAGE"
+    fi
 }
 
 auto_publish() {
@@ -210,7 +219,7 @@ clean_all() {
 }
 
 case $1 in
-    docker|run)
+    docker|podman|run)
         docker_run
         ;;
     pull)
