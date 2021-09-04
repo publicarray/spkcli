@@ -6,6 +6,12 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
 DEPENDENCIES=("curl" "git" "sed" "rm")
 
+RUNNING_IN_CONTAINER="false"
+# ToDo: improve container detection by setting an environment variable
+if [ -n "$container" ] || ( [ "$PWD" == "/spksrc" ] && grep -q "ID=debian" /etc/*release ); then
+    RUNNING_IN_CONTAINER="true"
+fi
+
 print_help() {
     printf "%s [COMMAND]\n" "$0"
     printf "    run\t\t\trun container for development\n"
@@ -30,6 +36,19 @@ docker_run() {
     fi
 }
 
+run_in_container() {
+    if [ $RUNNING_IN_CONTAINER == "true" ]; then
+        "$@"
+    else
+        check_any_dependency "docker" "podman"
+        if type -p podman > /dev/null 2>&1; then
+            podman run -it --rm --name spksrc --userns keep-id -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE" /bin/bash -c "$*"
+        else
+            docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE" /bin/bash -c "$*"
+        fi
+    fi
+}
+
 docker_git_pull() {
     check_any_dependency "docker" "podman"
 
@@ -47,8 +66,8 @@ auto_publish() {
     # make -C "$SCRIPT_DIR"/spk/"$1" clean
     # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
     # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
-    # make -C "$SCRIPT_DIR"/spk/"$1" publish-all-supported
-    make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
+    make -C "$SCRIPT_DIR"/spk/"$1" publish-all-supported
+    #make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
 }
 
 auto_publish_SRM() {
@@ -115,13 +134,14 @@ publish_action() {
 }
 
 build() {
-    make -C "$SCRIPT_DIR"/spk/"$1" spkclean
+    # "$SCRIPT_DIR"/spk/$1
+    run_in_container make -C spk/"$1" spkclean
     if [ "$2" == "all" ]; then
-        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
+        run_in_container make -C spk/"$1" all-supported
     elif [ -n "$2" ]; then
-        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-"$2"
+        run_in_container make -C spk/"$1" arch-"$2"
     else
-        make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0
+        run_in_container make -C spk/"$1" arch-x64-7.0
     fi
 }
 
@@ -273,7 +293,6 @@ check_any_dependency() {
     for cmd in "$@"; do
         if type -p "$cmd" > /dev/null 2>&1; then
             missing="false"
-            echo "$cmd"
         fi
     done
 
