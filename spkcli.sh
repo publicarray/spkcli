@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###
-# Opinionated Scrip to make managing https://github.com/SynoCommunity/spksrc/ easier.
+# Opinionated Script to make managing https://github.com/SynoCommunity/spksrc/ easier.
 # This script is meant to be run from the root of the spksrc repository.
 #
 # Copyright (C) 2021  Sebastian Schmidt
