@@ -146,6 +146,8 @@ publish_action() {
     # we only want to publish something that is on master
     git checkout master
     git pull upstream master
+    # make sure master is up to date
+    git push origin master
 
     echo "Running Publish Workflow...in 4 seconds!"
     sleep 4s
