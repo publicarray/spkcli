@@ -16,7 +16,8 @@
 # GNU General Public License for more details.
 ###
 
-set -e
+# stop on errors
+set -eo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
@@ -245,6 +246,7 @@ github_update_spk() {
 
 # Remove all generated build files, dependencies, and old downloads
 clean_all() {
+    set +e # ignore errors
     echo "===> Cleaning spk"
     for PKG in "$SCRIPT_DIR"/spk/*; do
         make -C "$PKG" clean
@@ -287,7 +289,7 @@ clean_all() {
     else
         rm -rdf "$SCRIPT_DIR"/distrib/nuget/packages
     fi
-
+    set -e
     echo "===> Done!"
 }
 
