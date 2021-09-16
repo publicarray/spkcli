@@ -21,7 +21,7 @@ set -eo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
-DEPENDENCIES=("curl" "git" "sed" "jq" "rm" "grep")
+DEPENDENCIES=("make" "curl" "git" "sed" "jq" "rm" "grep")
 
 RUNNING_IN_CONTAINER="false"
 # ToDo: improve container detection by setting an environment variable
@@ -93,7 +93,7 @@ auto_publish() {
 
 # publish an SPK for Routers
 auto_publish_SRM() {
-    mrun_in_container make -C /spksrc/spk/"$1" -j"$(nproc)" arch-armv7-1.2
+    run_in_container make -C /spksrc/spk/"$1" -j"$(nproc)" arch-armv7-1.2
     run_in_container make -C /spksrc/spk/"$1" publish-arch-armv7-1.2
 }
 
@@ -162,7 +162,7 @@ publish_action() {
 # [x64-7.0] = arch-x64-7.0 | specific arch and firmware version
 # [] defaults to arch-x64-7.0
 build() {
-    run_in_container make -C /spksrc/spk/"$1" spkclean
+    # make -C /spksrc/spk/"$1" spkclean
     if [ "$2" == "all" ]; then
         run_in_container make -C /spksrc/spk/"$1" all-supported
     elif [ -n "$2" ]; then
@@ -289,6 +289,12 @@ clean_all() {
     else
         rm -rdf "$SCRIPT_DIR"/distrib/nuget/packages
     fi
+    echo "===> Cleaning distrib/pip"
+    rm -rdf "$SCRIPT_DIR"/distrib/pip
+    echo "===> Cleaning distrib/go"
+    rm -rdf "$SCRIPT_DIR"/distrib/go
+    echo "===> Cleaning distrib/cargo"
+    rm -rdf "$SCRIPT_DIR"/distrib/cargo
     set -e
     echo "===> Done!"
 }
