@@ -2,7 +2,8 @@
 
 ###
 # Opinionated Script to make managing https://github.com/SynoCommunity/spksrc/ easier.
-# This script is meant to be run from the root of the spksrc repository.
+# This script is meant to be run from the root of the spksrc repository and
+# has only been tested/developed on a linux system.
 #
 # Copyright (C) 2021  Sebastian Schmidt
 # This program is free software; you can redistribute it and/or modify
