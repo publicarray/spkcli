@@ -47,7 +47,7 @@ print_help() {
 docker_run() {
     check_any_dependency "docker" "podman"
     if type -p podman > /dev/null 2>&1; then
-        ##setup rootless: udo touch /etc/subuid /etc/subgid && sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
+        ##setup rootless: sudo touch /etc/subuid /etc/subgid && sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $USER
         podman run -it --rm --name spksrc --userns keep-id -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE"
     else
         docker run -it --rm --name spksrc --user "$(id -u):$(id -g)" -v "$SCRIPT_DIR":/spksrc "$CONTAINER_IMAGE"
@@ -102,7 +102,6 @@ auto_publish_SRM() {
 
 # Create a github release
 release_action() {
-    # check_dependency "gh"
     if [ -z "$1" ]; then
         echo "Error: Missing package name"
         print_help
@@ -133,7 +132,9 @@ release_action() {
 }
 
 # This will publish a SPK of a given name from the master branch to SynoCommunity
+# ./spkcli publish-ci {package_name} true
 publish_action() {
+    check_dependency "gh"
     if [ -z "$1" ]; then
         echo "Error: Missing package name"
         print_help
@@ -149,7 +150,8 @@ publish_action() {
 
     # we only want to publish something that is on master
     git checkout master
-    git pull upstream master
+    git fetch upstream
+    git rebase upstream/master
     # make sure master is up to date
     git push origin master
 
