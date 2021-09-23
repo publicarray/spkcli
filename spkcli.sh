@@ -73,7 +73,10 @@ docker_git_pull() {
     check_any_dependency "docker" "podman"
 
     # git branch --set-upstream-to=origin/master
-    git pull upstream master
+    git checkout master
+    git fetch upstream
+    git rebase upstream/master
+    git push origin master
 
     if type -p podman > /dev/null 2>&1; then
         podman pull "$CONTAINER_IMAGE"
