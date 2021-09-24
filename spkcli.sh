@@ -34,10 +34,9 @@ print_help() {
     printf "%s [COMMAND]\n" "$0"
     printf "    run\t\t\trun container for development\n"
     printf "    pull\t\tgit pull & docker image pull\n"
-    printf "    publish [SPK]\tbuild and publish for all DSM architectures\n"
+    printf "    publish [SPK] {ARCH}\tbuild and publish for all DSM architectures\n"
     printf "    publish-ci [SPK] true\tbuild and publish for all supported DSM versions/architectures using GitHub Actions\n"
-    printf "    publish-srm [SPK]\tbuild and publish for all SRM architectures\n"
-    printf "    build [SPK]\t\tbuild packages for development (x64)\n"
+    printf "    build [SPK] {ARCH}\t\tbuild packages for development (x64)\n"
     printf "    clean [SPK]\t\tclean package\n"
     printf "    clean-all\t\tclean all builds and cached files in /distrib\n"
     printf "    digest [SPK]\tupdate digests\n"
@@ -87,18 +86,39 @@ docker_git_pull() {
 }
 
 # publish an SPK for NASs
-auto_publish() {
-    # make -C "$SCRIPT_DIR"/spk/"$1" clean
-    # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" all-supported
-    run_in_container make -C /spksrc/spk/"$1" publish-all-supported
-    # make -C "$SCRIPT_DIR"/spk/"$1" -j"$(nproc)" arch-x64-7.0 arch-armv7-7.0 arch-aarch64-7.0 arch-evansport-7.0
-    # make -C "$SCRIPT_DIR"/spk/"$1" publish-arch-x64-7.0 publish-arch-armv7-7.0 publish-arch-aarch64-7.0 publish-arch-evansport-7.0
-}
+publish() {
+    # make -C /spksrc/spk/"$1" clean
 
-# publish an SPK for Routers
-auto_publish_SRM() {
-    run_in_container make -C /spksrc/spk/"$1" -j"$(nproc)" arch-armv7-1.2
-    run_in_container make -C /spksrc/spk/"$1" publish-arch-armv7-1.2
+    # copy from GitHub actions
+    dsm_arch="publish-arch-noarch \
+        publish-arch-noarch-7.0 \
+        publish-arch-x64-6.1 \
+        publish-arch-x64-7.0 \
+        publish-arch-evansport-6.1 \
+        publish-arch-evansport-7.0 \
+        publish-arch-aarch64-6.1 \
+        publish-arch-aarch64-7.0 \
+        publish-arch-armv7-6.1 \
+        publish-arch-armv7-7.0 \
+        publish-arch-hi3535-6.1 \
+        publish-arch-88f6281-6.1 \
+        publish-arch-qoriq-6.1 \
+        publish-arch-comcerto2k-7.0"
+    srm_arch="publish-arch-armv7-1.2"
+
+    if [ "$2" == "all" ]; then
+        arch="$dsm_arch $srm_arch"
+    elif [ "$2" == "dsm" ] || [ "$2" == "nas" ]; then
+        arch="$dsm_arch"
+    elif [ "$2" == "srm" ] || [ "$2" == "router" ]; then
+        arch="$srm_arch"
+    elif [ -n "$2" ]; then
+        arch="publish-arch-$2"
+    else
+        arch="publish-all-supported"
+    fi
+    run_in_container make -C /spksrc/spk/"$1" "$arch"
+
 }
 
 # Create a github release
@@ -159,6 +179,7 @@ publish_action() {
     echo "Running Publish Workflow...in 4 seconds!"
     sleep 4s
     gh workflow -R "${GITHUB_USERNAME}/spksrc" run build.yml -f "package=$SPK_NAME" -f "publish=$2"
+    sleep 10s
     gh run -R "${GITHUB_USERNAME}/spksrc" watch && notify-send -i "github" -a "GitHub" \
         "🛠 Build is done! 🎉" "To view the build visit https://synocommunity.com/admin/build"
 }
@@ -362,18 +383,18 @@ case $1 in
         ;;
     publish)
         shift
-        auto_publish "$1"
+        publish "$1" "$2"
         ;;
     publish-srm|publishsrm)
         shift
-        auto_publish_SRM "$1"
+        publish "$1" "srm"
         ;;
     publish-action|publishaction|gh-publish|ghpublish|publish-ci|publishci)
         shift
         publish_action "$1" "$2"
         ;;
     pr)
-        gh pr create
+        gh pr create "$@"
         ;;
     build)
         shift
