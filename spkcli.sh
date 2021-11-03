@@ -105,11 +105,19 @@ publish() {
         publish-arch-qoriq-6.1 \
         publish-arch-comcerto2k-7.0"
     srm_arch="publish-arch-armv7-1.2"
-
+    old_arch="publish-arch-ppc853x-5.2"
+    dsm7_arch=" publish-arch-x64-7.0 \
+        publish-arch-evansport-7.0 \
+        publish-arch-aarch64-7.0 \
+        publish-arch-armv7-7.0 \
+        publish-arch-comcerto2k-7.0"
     if [ "$2" == "all" ]; then
-        arch="$dsm_arch $srm_arch"
+        # synocli tools
+        arch="$dsm_arch $srm_arch $old_arch"
     elif [ "$2" == "dsm" ] || [ "$2" == "nas" ]; then
         arch="$dsm_arch"
+    elif [ "$2" == "dsm7" ]; then
+        arch="$dsm7_arch"
     elif [ "$2" == "srm" ] || [ "$2" == "router" ]; then
         arch="$srm_arch"
     elif [ -n "$2" ]; then
@@ -189,7 +197,8 @@ publish_action() {
 # [x64-7.0] = arch-x64-7.0 | specific arch and firmware version
 # [] defaults to arch-x64-7.0
 build() {
-    # make -C /spksrc/spk/"$1" spkclean
+    #run_in_container make -C /spksrc/spk/"$1" spkclean
+    make -C "$SCRIPT_DIR"/spk/"$1" spkclean
     if [ "$2" == "all" ]; then
         run_in_container make -C /spksrc/spk/"$1" all-supported
     elif [ -n "$2" ]; then
@@ -423,3 +432,4 @@ case $1 in
         print_help
         ;;
 esac
+
