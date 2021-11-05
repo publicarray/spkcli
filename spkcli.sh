@@ -90,36 +90,33 @@ publish() {
     # make -C /spksrc/spk/"$1" clean
 
     # copy from GitHub actions
-    dsm_arch="publish-arch-noarch \
-        publish-arch-noarch-7.0 \
-        publish-arch-x64-6.1 \
-        publish-arch-x64-7.0 \
-        publish-arch-evansport-6.1 \
+    dsm7_arch="publish-arch-x64-7.0 \
         publish-arch-evansport-7.0 \
-        publish-arch-aarch64-6.1 \
         publish-arch-aarch64-7.0 \
-        publish-arch-armv7-6.1 \
         publish-arch-armv7-7.0 \
+        publish-arch-comcerto2k-7.0"
+    dsm6_arch="publish-arch-x64-6.1 \
+        publish-arch-evansport-6.1 \
+        publish-arch-aarch64-6.1 \
+        publish-arch-armv7-6.1 \
         publish-arch-hi3535-6.1 \
         publish-arch-88f6281-6.1 \
-        publish-arch-qoriq-6.1 \
-        publish-arch-comcerto2k-7.0"
+        publish-arch-qoriq-6.1"
     srm_arch="publish-arch-armv7-1.2"
     old_arch="publish-arch-ppc853x-5.2"
-    dsm7_arch=" publish-arch-x64-7.0 \
-        publish-arch-evansport-7.0 \
-        publish-arch-aarch64-7.0 \
-        publish-arch-armv7-7.0 \
-        publish-arch-comcerto2k-7.0"
+    dsm_arch="publish-arch-noarch publish-arch-noarch-7.0 $dsm6_arch $dsm7_arch"
     if [ "$2" == "all" ]; then
-        # synocli tools
         arch="$dsm_arch $srm_arch $old_arch"
     elif [ "$2" == "dsm" ] || [ "$2" == "nas" ]; then
         arch="$dsm_arch"
+    elif [ "$2" == "dsm6" ]; then
+        arch="$dsm6_arch"
     elif [ "$2" == "dsm7" ]; then
         arch="$dsm7_arch"
     elif [ "$2" == "srm" ] || [ "$2" == "router" ]; then
         arch="$srm_arch"
+    elif [ "$2" == "noarch" ]; then
+        arch="publish-arch-noarch publish-arch-noarch-7.0"
     elif [ -n "$2" ]; then
         arch="publish-arch-$2"
     else
@@ -420,7 +417,7 @@ case $1 in
     clean-all|cleanall)
         clean_all
         ;;
-    digest|digests|hash)
+    digest|digests|hash|checksum)
         shift
         auto_digests "$1"
         ;;
@@ -432,4 +429,3 @@ case $1 in
         print_help
         ;;
 esac
-
