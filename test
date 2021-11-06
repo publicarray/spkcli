@@ -1,7 +1,10 @@
 #!/bin/bash
 ####
-# usage ./test.sh filename.spk package_name
+# Only meant to be used inside a DSM environment
+# usage: ./test filename.spk package_name
 #####
+# shellcheck disable=SC1090
+# shellcheck disable=SC2154
 
 PACKAGE_FILE=$1
 PACKAGE="$2"
@@ -22,6 +25,7 @@ PATH="$PATH:/usr/syno/bin/"
 system_info() {
     source /etc.defaults/VERSION
     source /etc.defaults/synoinfo.conf
+
     heading "System Information"
     printf "\tDate: "; date -u +"%Y-%m-%d %H:%M"
     printf "\tWhoami: "; whoami
@@ -45,7 +49,6 @@ package_info() {
         report "Package not found!" fail
         exit 1;
     fi
-    # shellcheck disable=SC1090
     source "/var/packages/$PACKAGE/INFO"
 
     heading "Package Information"
@@ -152,7 +155,7 @@ install_test
 package_info
 
 # Cleanup package file
-# rm -vf "$PACKAGE_FILE"
+rm -vf "$PACKAGE_FILE"
 
 if [ $ERRORS -eq 0 ]; then
     printf "\n${GREEN}Success! ✅\n"
@@ -163,4 +166,3 @@ else
     printf "\n${RED}${BOLD}[%s] Tests failed $NC 😢\n" "$ERRORS"
     exit 1
 fi
-
