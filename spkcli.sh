@@ -20,6 +20,8 @@
 # stop on errors
 set -eo pipefail
 
+SSH_HOST="dsm6-dev"
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
 DEPENDENCIES=("make" "curl" "git" "sed" "jq" "rm" "grep")
@@ -332,6 +334,44 @@ clean_all() {
     echo "===> Done!"
 }
 
+lint() {
+    make lint
+}
+
+## optional to use sshpass helper
+ssh_pass() {
+    source .env
+
+    if type -p "$cmd" > /dev/null 2>&1; then
+        sshpass -p "$SSH_PASS" "$@"
+    else
+        "$@"
+    fi
+}
+
+## Audit package
+test_package() {
+    package_file_path="$1"
+    package_file_basename="${1##*/}"
+    package_name="$2"
+    # import password
+    source .env
+    # copy script
+    ssh_pass scp "test" "$SSH_HOST:test"
+    # copy package
+    ssh_pass scp "$package_file_path" "$SSH_HOST:$package_file_basename"
+    # run script
+    # echo $SSH_PASS | ssh_pass ssh -tt $SSH_HOST "sudo whoami"
+    echo "$SSH_PASS" | ssh_pass ssh "$SSH_HOST" cat \| sudo --prompt="" -S -- "./test" "$package_file_basename" "$package_name"
+
+    # ssh $SSH_HOST "echo \"$SSH_PASS\" | sudo -Sv && bash -s" < test.sh "$1"
+    # ssh $SSH_HOST 'echo "$SSH_PASS" | sudo -Sv && bash -s' < test.sh "$1"
+# ssh $SSH_HOST <<'ENDSSH'
+#     echo "nooo"
+# ENDSSH
+
+}
+
 # Helper function to grab the GitHub user
 get_github_username() {
     check_dependency "gh"
@@ -424,6 +464,14 @@ case $1 in
     update)
         shift
         github_update_spk "$1"
+        ;;
+    lint)
+        shift
+        lint "$1"
+        ;;
+    test)
+        shift
+        test_package "$@"
         ;;
     *)
         print_help

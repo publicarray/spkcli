@@ -1,0 +1,166 @@
+#!/bin/bash
+####
+# usage ./test.sh filename.spk package_name
+#####
+
+PACKAGE_FILE=$1
+PACKAGE="$2"
+ERRORS=0
+# Terminal colors
+BOLD='\e[1m'
+BLACK='\e[30m'
+RED='\e[31m'
+RED_BG='\e[41m'
+GREEN='\e[32m'
+ORANGE='\e[33m'
+BLUE='\e[34m'
+GRAY='\e[37m'
+NC='\e[00m'
+
+PATH="$PATH:/usr/syno/bin/"
+
+system_info() {
+    source /etc.defaults/VERSION
+    source /etc.defaults/synoinfo.conf
+    heading "System Information"
+    printf "\tDate: "; date -u +"%Y-%m-%d %H:%M"
+    printf "\tWhoami: "; whoami
+    printf "\tHostname: "; hostname
+    printf "\tArchitecture: %s, " "$synobios"; uname -m
+    printf "\tModel: "; echo $unique|cut -d'_' -f3|sed 's/^ds/DS/;s/^fs/FS/;s/^rs/RS/'|sed 's/^\([0-9]\)/DS\1/'
+    message "Firmware Version: $productversion-$buildnumber"
+    message "Build date: $builddate $buildtime"
+    printf "\tKernel: "; uname -a
+    message "Package Center Channel: $package_update_channel"
+    # message "NTP Server: $ntpdate_server"
+    message "Language: $language" # def = default = english?
+    message "Default Memory: ${mem_default_mb}m"
+    printf "\tInstalled Memory: "; free -m | grep Mem | awk '{print $2}'
+    # printf "\tLocal IP: "; ip route get 1 | awk '{print $(NF);exit}'
+    df -h | grep '/volume\|Use%'
+}
+
+package_info() {
+    if [ ! -f "/var/packages/$PACKAGE/INFO" ]; then
+        report "Package not found!" fail
+        exit 1;
+    fi
+    # shellcheck disable=SC1090
+    source "/var/packages/$PACKAGE/INFO"
+
+    heading "Package Information"
+    message "Filename: $PACKAGE_FILE"
+    message "Name: $package"
+    message "Version: $version"
+    message "Display Name: $displayname"
+    message "Minimum DSM version: $os_min_ver"
+    message "Dependency Packages: $install_dep_packages"
+    message "Install Log: \"/var/log/packages/$package.log\""
+}
+
+info_test() {
+    source "/var/packages/$PACKAGE/INFO"
+    test -n $package_icon
+    report "Embedded package icon" $? "ignore"
+}
+
+logs_test() {
+    test -f "/var/log/packages/$PACKAGE.log"
+    report "Install log file exists"
+
+    grep -qi "error\|fail" "/var/log/packages/$PACKAGE.log"
+    test $? -eq 1 # check grep return code. 1=nothing found
+    report "Install logfile is free of errors"
+
+    grep -qi "warning\|can't" "/var/log/packages/$PACKAGE.log";
+    test $? -eq 1 # check grep return code. 1=nothing found
+    report "Install logfile is free of warnings" $? "ignore"
+
+    synopkg log "$PACKAGE"
+
+# detailed information
+#grep --color=always -iC 20 "error\|fail" "/var/log/packages/$package.log"
+#grep --color=always -iC 20 "warning\|can't" "/var/log/packages/$package.log";
+# clean log file first
+#echo "" > "/var/log/packages/$package.log"
+
+}
+
+install_test() {
+    echo "" > "/var/log/packages/$PACKAGE.log"
+
+    synopkg install "$PACKAGE_FILE"
+    report "Installed $PACKAGE_FILE" $?
+    synopkg start "$PACKAGE"
+    report "Start $PACKAGE" $?
+    synopkg status "$PACKAGE"
+    test $? -eq 0 # check return code. 3=stopped
+    report "Status $PACKAGE" $?
+
+    logs_test
+    info_test
+}
+    # synopkg uninstall "$PACKAGE"
+
+#### helpers #########
+heading () {
+    printf "${BOLD} %s $NC\n" "$1"
+}
+
+message() {
+    printf "\t%s\n" "$@"
+}
+
+report() {
+    exit_code=$?
+    message=$1
+    status=$2
+    ignore_error=$3
+    if [ -z "$status" ];then
+        status="$exit_code"
+    fi
+
+    case "$status" in
+    "pass"| "ok" | 0 )
+        printf "✅ ${GREEN}[pass]$NC %s\n" "$message"
+        ;;
+    "fail" | "error" | 1)
+        if [ -z "$ignore_error" ]; then
+            ERRORS=$((ERRORS+=1))
+            printf "❌ ${RED}${BOLD}[fail]$NC${BOLD} %s$NC\n" "$message"
+        else
+            report "$1" "ignore"
+        fi
+        ;;
+    "info") ## gray?
+        printf "ℹ ${BLUE}[info]$NC %s\n" "$message"
+        ;;
+    "ignored" | "ignore")
+        printf " ${ORANGE}[ignored]$NC %s\n" "$message"
+        ;;
+    *)
+        printf "⁉ ${ORANGE}[unknown]$NC %s\n" "$message"
+        ;;
+    esac
+}
+
+## Start ##
+
+system_info
+heading "Running Tests"
+install_test
+package_info
+
+# Cleanup package file
+# rm -vf "$PACKAGE_FILE"
+
+if [ $ERRORS -eq 0 ]; then
+    printf "\n${GREEN}Success! ✅\n"
+elif [ $ERRORS -eq 1 ]; then
+    printf "\n${RED}${BOLD}[%s] Test failed $NC 😢\n" "$ERRORS"
+    exit 1
+else
+    printf "\n${RED}${BOLD}[%s] Tests failed $NC 😢\n" "$ERRORS"
+    exit 1
+fi
+
