@@ -38,10 +38,13 @@ system_info() {
     message "Package Center Channel: $package_update_channel"
     # message "NTP Server: $ntpdate_server"
     message "Language: $language" # def = default = english?
-    message "Default Memory: ${mem_default_mb}m"
+    message "VAAI support: $support_vaai"
     printf "\tInstalled Memory: "; free -m | grep Mem | awk '{print $2}'
     # printf "\tLocal IP: "; ip route get 1 | awk '{print $(NF);exit}'
-    df -h | grep '/volume\|Use%'
+    df -h | grep -i '/volume\|Use%'
+    echo "CPU:"
+    grep -i 'processor\|model name\|features\|flags' /proc/cpuinfo | sort -u
+    # grep -i 'processor\|model\|features\|flags    \|bugs' /proc/cpuinfo | sort -u
 }
 
 package_info() {
@@ -59,6 +62,7 @@ package_info() {
     message "Minimum DSM version: $os_min_ver"
     message "Dependency Packages: $install_dep_packages"
     message "Install Log: \"/var/log/packages/$package.log\""
+    printf "\tRun Log: "; synopkg log "$PACKAGE"
 }
 
 info_test() {
@@ -78,8 +82,6 @@ logs_test() {
     grep -qi "warning\|can't" "/var/log/packages/$PACKAGE.log";
     test $? -eq 1 # check grep return code. 1=nothing found
     report "Install logfile is free of warnings" $? "ignore"
-
-    synopkg log "$PACKAGE"
 
 # detailed information
 #grep --color=always -iC 20 "error\|fail" "/var/log/packages/$package.log"
