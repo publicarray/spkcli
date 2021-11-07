@@ -6,6 +6,7 @@
 * Common aliases
 * Publish in container or via GitHub (requires gh cli)
 * Test script (alpha)
+  * Caveat: Packages with wizards will fail to install if they han't been designed with empty/defaults input
 * Update script (beta)
 
 
