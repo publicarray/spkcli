@@ -15,7 +15,7 @@
 1. Copy the files to the root of the spksrc reposetory
 2. Update the `.env` file
 
-```sh
+```
 ./spkcli [COMMAND]
     build [SPK] {ARCH}      build packages for development (x64-7.0)
     clean [SPK]             clean package
