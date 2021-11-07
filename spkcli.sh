@@ -20,7 +20,7 @@
 # stop on errors
 set -eo pipefail
 
-SSH_HOST="dsm6-dev"
+SSH_HOST="dsm7-dev"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"

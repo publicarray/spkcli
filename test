@@ -8,6 +8,7 @@
 
 PACKAGE_FILE=$1
 PACKAGE="$2"
+SERVICE=0
 ERRORS=0
 # Terminal colors
 BOLD='\e[1m'
@@ -42,9 +43,8 @@ system_info() {
     printf "\tInstalled Memory: "; free -m | grep Mem | awk '{print $2}'
     # printf "\tLocal IP: "; ip route get 1 | awk '{print $(NF);exit}'
     df -h | grep -i '/volume\|Use%'
-    echo "CPU:"
-    grep -i 'processor\|model name\|features\|flags' /proc/cpuinfo | sort -u
-    # grep -i 'processor\|model\|features\|flags    \|bugs' /proc/cpuinfo | sort -u
+    # echo "CPU:" # Too noisy but would like to enable this in the future
+    # grep -i 'processor\|model\|features\|flags\|bugs' /proc/cpuinfo | sort -u
 }
 
 package_info() {
@@ -59,31 +59,64 @@ package_info() {
     message "Name: $package"
     message "Version: $version"
     message "Display Name: $displayname"
+    message "Admin Port: $adminport"
     message "Minimum DSM version: $os_min_ver"
     message "Dependency Packages: $install_dep_packages"
     message "Install Log: \"/var/log/packages/$package.log\""
     printf "\tRun Log: "; synopkg log "$PACKAGE"
 }
 
-info_test() {
+metadata_test() {
+    if [ ! -f "/var/packages/$PACKAGE/INFO" ]; then
+        report "Package not found!" fail
+        exit 1;
+    fi
+
     source "/var/packages/$PACKAGE/INFO"
     test -n $package_icon
     report "Embedded package icon" $? "ignore"
+
+    if [ -n "$adminport" ] && [ -f "/var/packages/$PACKAGE/target/app/$PACKAGE.sc" ]; then
+        SERVICE=1
+        report "Package has a service" "info"
+        report "Package has both the firewall rule and admin port" "pass"
+    elif [ -n "$adminport" ] || [ -f "/var/packages/$PACKAGE/target/app/$PACKAGE.sc" ]; then
+        SERVICE=1
+        report "Package has a service" "info"
+        report "Package has both the firewall rule and admin port" "error" "ignore"
+    else
+        report "Package doesn't have a service" "info"
+    fi
+
+    if [ "$SERVICE" -eq 1 ]; then
+        grep "$adminport" "/var/packages/$PACKAGE/target/app/$PACKAGE.sc"
+        report "Admin port is included in the firewall rule"
+
+        test -f "/usr/local/etc/services.d/$PACKAGE.sc"
+        report "Firewall rule is installed"
+    fi
+
+    cat "/var/packages/$PACKAGE/target/app/config" | jq . >/dev/null #todo: check if the file is a script
+    report "Valid json for app/config" $? "ignore"
+
+    # other files to checkout:
+    # /var/packages/$PACKAGE/conf/resource
+    # /var/packages/$PACKAGE/conf/privilege
 }
 
 logs_test() {
     test -f "/var/log/packages/$PACKAGE.log"
     report "Install log file exists"
 
-    grep -qi "error\|fail" "/var/log/packages/$PACKAGE.log"
+    grep -i "error\|fail" "/var/log/packages/$PACKAGE.log"
     test $? -eq 1 # check grep return code. 1=nothing found
     report "Install logfile is free of errors"
 
-    grep -qi "warning\|can't" "/var/log/packages/$PACKAGE.log";
+    grep -i "warning\|can't" "/var/log/packages/$PACKAGE.log";
     test $? -eq 1 # check grep return code. 1=nothing found
     report "Install logfile is free of warnings" $? "ignore"
 
-# detailed information
+# detailed information option?
 #grep --color=always -iC 20 "error\|fail" "/var/log/packages/$package.log"
 #grep --color=always -iC 20 "warning\|can't" "/var/log/packages/$package.log";
 # clean log file first
@@ -96,14 +129,24 @@ install_test() {
 
     synopkg install "$PACKAGE_FILE"
     report "Installed $PACKAGE_FILE" $?
+    logs_test
+    metadata_test
+}
+
+service_test () {
     synopkg start "$PACKAGE"
     report "Start $PACKAGE" $?
+
     synopkg status "$PACKAGE"
     test $? -eq 0 # check return code. 3=stopped
     report "Status $PACKAGE" $?
 
-    logs_test
-    info_test
+    synopkg stop "$PACKAGE"
+    report "Stop $PACKAGE" $?
+
+    synopkg status "$PACKAGE"
+    test $? -eq 3 # check return code. 3=stopped
+    report "Status $PACKAGE" $?
 }
     # synopkg uninstall "$PACKAGE"
 
@@ -154,6 +197,9 @@ report() {
 system_info
 heading "Running Tests"
 install_test
+if [ "$SERVICE" -eq 1 ]; then
+    service_test
+fi
 package_info
 
 # Cleanup package file
