@@ -20,7 +20,7 @@
 # stop on errors
 set -eo pipefail
 
-SSH_HOST="dsm7-dev"
+
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
@@ -34,15 +34,17 @@ fi
 
 print_help() {
     printf "%s [COMMAND]\n" "$0"
-    printf "    run\t\t\trun container for development\n"
-    printf "    pull\t\tgit pull & docker image pull\n"
+    printf "    build [SPK] {ARCH}\t\tbuild packages for development (x64-7.0)\n"
+    printf "    clean [SPK]\t\t\tclean package\n"
+    printf "    clean-all\t\t\tclean all builds and cached files in /distrib\n"
+    printf "    digest [SPK]\t\tupdate digests\n"
+    printf "    lint \t\t\trun make lint\n"
     printf "    publish [SPK] {ARCH}\tbuild and publish for all DSM architectures\n"
     printf "    publish-ci [SPK] true\tbuild and publish for all supported DSM versions/architectures using GitHub Actions\n"
-    printf "    build [SPK] {ARCH}\t\tbuild packages for development (x64)\n"
-    printf "    clean [SPK]\t\tclean package\n"
-    printf "    clean-all\t\tclean all builds and cached files in /distrib\n"
-    printf "    digest [SPK]\tupdate digests\n"
-    printf "    update [SPK]\tcheck for git releases for an update\n"
+    printf "    pull\t\t\tgit pull & docker image pull\n"
+    printf "    run\t\t\t\trun container for development\n"
+    printf "    test [SPK FILE] [SPK]\trun test script on NAS via ssh\n"
+    printf "    update [SPK]\t\tcheck for git releases for an update\n"
 }
 
 # Run SPK development docker container from SynoCommunity
@@ -354,22 +356,14 @@ test_package() {
     package_file_path="$1"
     package_file_basename="${1##*/}"
     package_name="$2"
-    # import password
+    # import ssh password
     source .env
     # copy script
     ssh_pass scp "test" "$SSH_HOST:test"
     # copy package
     ssh_pass scp "$package_file_path" "$SSH_HOST:$package_file_basename"
     # run script
-    # echo $SSH_PASS | ssh_pass ssh -tt $SSH_HOST "sudo whoami"
     echo "$SSH_PASS" | ssh_pass ssh "$SSH_HOST" cat \| sudo --prompt="" -S -- "./test" "$package_file_basename" "$package_name"
-
-    # ssh $SSH_HOST "echo \"$SSH_PASS\" | sudo -Sv && bash -s" < test.sh "$1"
-    # ssh $SSH_HOST 'echo "$SSH_PASS" | sudo -Sv && bash -s' < test.sh "$1"
-# ssh $SSH_HOST <<'ENDSSH'
-#     echo "nooo"
-# ENDSSH
-
 }
 
 # Helper function to grab the GitHub user
@@ -467,7 +461,7 @@ case $1 in
         ;;
     lint)
         shift
-        lint "$1"
+        lint
         ;;
     test)
         shift
