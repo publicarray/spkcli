@@ -34,7 +34,7 @@ fi
 
 print_help() {
     printf "%s [COMMAND]\n" "$0"
-    printf "    build [SPK] {ARCH}\t\tbuild packages for development (x64-7.0)\n"
+    printf "    build [SPK] {ARCH}\t\tbuild packages for development (x64)\n"
     printf "    clean [SPK]\t\t\tclean package\n"
     printf "    clean-all\t\t\tclean all builds and cached files in /distrib\n"
     printf "    digest [SPK]\t\tupdate digests\n"
@@ -233,6 +233,11 @@ get_latest_release() {
     # no draft versions
     curl -L --silent "https://api.github.com/repos/$1/releases" |
         jq 'map(if .draft == true then "" else .tag_name end)[0]'
+}
+
+get_latest_release2() {
+    curl -Ls -o /dev/null -w '%{url_effective}' "https://github.com/$1/releases/latest"
+    echo "${LATEST_URL##*/v}"
 }
 
 get_latest_tag() {
