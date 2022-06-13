@@ -20,7 +20,11 @@
 # stop on errors
 set -eo pipefail
 
-
+# DSM Setup: Enable ssh (Terminal & SNMP) and sftp (File Services->FTP)
+#            Change user root directory  (File Services->FTP->Advanced->Select User)
+source .env
+SSH_HOST="$SSH_DSM7_HOST"
+SSH_PASS="$SSH_DSM7_PASS"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_IMAGE="ghcr.io/synocommunity/spksrc"
@@ -326,8 +330,8 @@ clean_all() {
     done <   <(sha256sum -z distrib/* 2>/dev/null)
 
     echo "===> Cleaning distrib/nuget"
-    if [ -f /spksrc/native/dotnet-sdk-5.0/work-native/dotnet ]; then
-        NUGET_PACKAGES=/spksrc/distrib/nuget/packages /spksrc/native/dotnet-sdk-5.0/work-native/dotnet nuget locals all --clear
+    if [ -f /spksrc/native/dotnet-sdk-6.0/work-native/dotnet ]; then
+        NUGET_PACKAGES=/spksrc/distrib/nuget/packages /spksrc/native/dotnet-sdk-6.0/work-native/dotnet nuget locals all --clear
     else
         rm -rdf "$SCRIPT_DIR"/distrib/nuget/packages
     fi
@@ -347,8 +351,6 @@ lint() {
 
 ## optional to use sshpass helper
 ssh_pass() {
-    source .env
-
     if type -p "$cmd" > /dev/null 2>&1; then
         sshpass -p "$SSH_PASS" "$@"
     else
@@ -361,8 +363,7 @@ test_package() {
     package_file_path="$1"
     package_file_basename="${1##*/}"
     package_name="$2"
-    # import ssh password
-    source .env
+
     # copy script
     ssh_pass scp "test" "$SSH_HOST:test"
     # copy package
