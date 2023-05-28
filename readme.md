@@ -15,7 +15,7 @@
 1. Copy the files to the root of the spksrc reposetory:
 
 ```sh
-wget https://raw.githubusercontent.com/publicarray/spkcli/main/spkcli.sh; wget https://raw.githubusercontent.com/publicarray/spkcli/main/test; printf "SSH_HOST=\"dsm7-dev\"\nSSH_PASS=\"\"" > .env
+wget https://raw.githubusercontent.com/publicarray/spkcli/main/spkcli.sh; chmod +x spkcli.sh; wget https://raw.githubusercontent.com/publicarray/spkcli/main/test; chmod +x test'; printf "SSH_HOST=\"dsm7-dev\"\nSSH_PASS=\"\"" > .env
 ```
 Note: you may want to update your `~/.ssh/config` to include your NAS as an alias: e.g
 ```ssh
