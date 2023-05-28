@@ -12,8 +12,19 @@
 
 ## Usage
 
-1. Copy the files to the root of the spksrc reposetory
-2. Update the `.env` file
+1. Copy the files to the root of the spksrc reposetory:
+
+```
+wget https://raw.githubusercontent.com/publicarray/spkcli/main/spkcli.sh; wget https://raw.githubusercontent.com/publicarray/spkcli/main/test; printf "SSH_HOST=\"dsm7-dev\"\nSSH_PASS=\"\"" > .env
+```
+Note: you may want to update your `~/.ssh/config` to include your NAS as an alias: e.g
+```
+Host dsm7-dev
+   HostName 10.0.0.3
+   User admin
+```
+
+3. Update the `.env` file
 
 ```
 ./spkcli [COMMAND]
