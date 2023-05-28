@@ -14,11 +14,11 @@
 
 1. Copy the files to the root of the spksrc reposetory:
 
-```
+```sh
 wget https://raw.githubusercontent.com/publicarray/spkcli/main/spkcli.sh; wget https://raw.githubusercontent.com/publicarray/spkcli/main/test; printf "SSH_HOST=\"dsm7-dev\"\nSSH_PASS=\"\"" > .env
 ```
 Note: you may want to update your `~/.ssh/config` to include your NAS as an alias: e.g
-```
+```ssh
 Host dsm7-dev
    HostName 10.0.0.3
    User admin
@@ -45,7 +45,7 @@ Host dsm7-dev
 
 ### Failed test Report
 
-```
+```log
 ./spkcli test packages/bazarr_x64-7.0_1.0.0-1.spk bazarr
  System Information
 	Date: 2021-11-07 01:04
